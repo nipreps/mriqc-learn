@@ -42,9 +42,12 @@ class LeavePSitesOut(BaseCrossValidator):
         self.colname = colname
         self.robust = robust
 
-    def _iter_test_masks(self, X, y, groups):
+    def _iter_test_masks(self, X, y=None, groups=None):
         if groups is None:
-            raise ValueError("The 'groups' parameter should not be None.")
+            if X is not None and self.colname in X.columns:
+                groups = X[[self.colname]]
+            else:
+                raise ValueError("The 'groups' parameter should not be None.")
 
         _groups = groups[[self.colname]].groupby(self.colname).groups
 
@@ -84,15 +87,4 @@ class LeavePSitesOut(BaseCrossValidator):
         n_splits : int
             Returns the number of splitting iterations in the cross-validator.
         """
-        if groups is None:
-            raise ValueError("The 'groups' parameter should not be None.")
-
-        _groups = groups[[self.colname]].groupby(self.colname).groups
-
-        if len(_groups) <= self.n_groups:
-            raise ValueError(
-                f"Cannot extract {self.n_groups} "
-                f"if the total number of groups is {len(_groups)}"
-            )
-
-        return len(list(combinations(_groups.keys(), self.n_groups)))
+        return len(list(self._iter_test_masks(X, y, groups)))
