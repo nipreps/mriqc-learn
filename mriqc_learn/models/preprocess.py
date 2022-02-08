@@ -20,9 +20,6 @@
 #
 #     https://www.nipreps.org/community/licensing/
 #
-# STATEMENT OF CHANGES: This file is derived from the sources of scikit-learn 0.19,
-# which licensed under the BSD 3-clause.
-# This file contains extensions and modifications to the original code.
 """Preprocessing transformers."""
 import logging
 import numpy as np
@@ -35,7 +32,40 @@ LOG = logging.getLogger("mriqc_learn")
 rng = np.random.default_rng()
 
 
-class DropColumns(BaseEstimator, TransformerMixin):
+class _FeatureSelection(BaseEstimator, TransformerMixin):
+    """Base class to avoid reimplementations of transform."""
+
+    def __init__(
+        self,
+        disable=False,
+        ignore=None,
+        drop=None,
+    ):
+        self.disable = disable
+        self.ignore = ignore or tuple()
+        self.drop = drop
+
+    def transform(self, X, y=None):
+        """Apply dimensionality reduction to X.
+        X is masked.
+        Parameters
+        ----------
+        X : array-like, shape (n_samples, n_features)
+            New data, where n_samples is the number of samples
+            and n_features is the number of features.
+        Returns
+        -------
+        X_new : array-like, shape (n_samples, n_components)
+        """
+        if self.disable or not self.drop:
+            return X
+
+        return X.drop([
+            field for field in self.drop if field not in self.ignore
+        ], axis=1)
+
+
+class DropColumns(_FeatureSelection):
     """
     Wraps a data transformation to run only in specific
     columns [`source <https://stackoverflow.com/a/41461843/6820620>`_].
@@ -49,14 +79,25 @@ class DropColumns(BaseEstimator, TransformerMixin):
 
     """
 
-    def __init__(self, columns):
-        self.columns = columns
+    def __init__(self, drop):
+        self.drop = drop
+        self.disable = False
+        self.ignore = tuple()
 
     def fit(self, X, y=None):
         return self
 
+
+class PrintColumns(BaseEstimator, TransformerMixin):
+    """Report to the log current columns."""
+
+    def fit(self, X, y=None):
+        cols = X.columns.tolist()
+        LOG.warn(f"Features ({len(cols)}): {', '.join(cols)}.")
+        return self
+
     def transform(self, X, y=None):
-        return X.drop(self.columns, axis=1)
+        return X
 
 
 class SiteRobustScaler(RobustScaler):
@@ -72,45 +113,59 @@ class SiteRobustScaler(RobustScaler):
         groupby="site",
     ):
         self.groupby = groupby
-        super().__init__(
-            with_centering=with_centering,
-            with_scaling=with_scaling,
-            quantile_range=quantile_range,
-            copy=copy,
-            unit_variance=unit_variance,
-        )
+        self.with_centering = with_centering
+        self.with_scaling = with_scaling
+        self.quantile_range = quantile_range
+        self.copy = copy
+        self.unit_variance = unit_variance
 
     def fit(self, X, y=None):
-        self.groups_ = X.groupby(self.groupby).groups
-        columns = X.columns.tolist()
-        self.columns_ = list(range(len(columns)))
-        self.columns_.remove(columns.index(self.groupby))
+        sites = X[[self.groupby]].values.squeeze()
+        X_input = X.drop([self.groupby], axis=1)
+
         self.scalers_ = {}
-        for group, indexes in self.groups_.items():
+        for group in set(sites):
             self.scalers_[group] = RobustScaler(
                 with_centering=self.with_centering,
                 with_scaling=self.with_scaling,
                 quantile_range=self.quantile_range,
                 copy=self.copy,
                 unit_variance=self.unit_variance,
-            ).fit(X.iloc[indexes, self.columns_])
+            ).fit(X_input[sites == group])
         return self
 
-    def transform(self, X):
+    def transform(self, X, y=None):
         if not self.scalers_:
             self.fit(X)
 
         if self.copy:
             X = X.copy()
 
-        for group, indexes in self.groups_.items():
-            X.iloc[indexes, self.columns_] = self.scalers_[group].transform(
-                X.iloc[indexes, self.columns_]
+        sites = X[[self.groupby]].values.squeeze()
+        X_input = X.drop([self.groupby], axis=1)
+
+        for group in set(sites):
+            if group not in self.scalers_:
+                # Yet unseen group
+                self.scalers_[group] = RobustScaler(
+                    with_centering=self.with_centering,
+                    with_scaling=self.with_scaling,
+                    quantile_range=self.quantile_range,
+                    copy=self.copy,
+                    unit_variance=self.unit_variance,
+                ).fit(X_input[sites == group])
+
+            # Apply scaling
+            X_input[sites == group] = self.scalers_[group].transform(
+                X_input[sites == group]
             )
-        return X
+
+        # Get sites back
+        X_input[self.groupby] = sites
+        return X_input
 
 
-class NoiseWinnowFeatSelect(BaseEstimator, TransformerMixin):
+class NoiseWinnowFeatSelect(_FeatureSelection):
     """
     Remove features with less importance than a noise feature
     https://gist.github.com/satra/c6eb113055810f19709fa7c5ebd23de8
@@ -126,17 +181,17 @@ class NoiseWinnowFeatSelect(BaseEstimator, TransformerMixin):
         k=1,
         ignore=("site", ),
     ):
+        self.ignore = ignore
         self.disable = disable
         self.n_winnow = n_winnow
         self.use_classifier = use_classifier
         self.n_estimators = n_estimators
         self.k = k
-        self.ignore = ignore
+
         self.importances_ = None
         self.importances_snr_ = None
-        self.mask_ = None
 
-    def fit(self, X, y=None, n_jobs=1):
+    def fit(self, X, y=None, n_jobs=None):
         """Fit the model with X.
         This is the workhorse function.
         Parameters
@@ -151,26 +206,22 @@ class NoiseWinnowFeatSelect(BaseEstimator, TransformerMixin):
         self.mask_ : array
             Logical array of features to keep
         """
-        from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
-
         if self.disable:
-            self.mask_ = np.ones(X.shape[1], dtype=bool)
             return self
 
+        from sklearn.ensemble import ExtraTreesClassifier, ExtraTreesRegressor
+
         X_input = X.copy()
+        columns_ = X_input.columns.tolist()
 
-        # Drop metadata columns (e.g., site)
-        if self.ignore:
-            columns_ = X_input.columns.tolist()
-            dropped_ = []
-            for col in set(self.ignore).intersection(columns_):
-                X_input = X_input.drop(col, axis=1)
-                dropped_.append(columns_.index(col))
-            self.dropped_ = sorted(dropped_)
+        self.drop = list(set(self.ignore).intersection(columns_))
 
-        n_sample, n_feature = np.shape(X_input)
-        self.mask_ = np.ones(n_feature, dtype=bool)
+        n_sample, n_feature = np.shape(X_input.drop(self.drop, axis=1))
+        LOG.debug(
+            f"Running Winnow selection with {n_feature} features."
+        )
 
+        # Prepare targets
         if y is None:
             y = X[["site"]].copy().values
             self.use_classifier = True
@@ -178,18 +229,18 @@ class NoiseWinnowFeatSelect(BaseEstimator, TransformerMixin):
         if self.use_classifier:
             y = OrdinalEncoder().fit_transform(y)
 
-        if hasattr(y, "columns"):
+        if hasattr(y, "values"):
             y = y.values.squeeze()
 
-        counter = 0
+        counter = 1
         noise_flag = True
         while noise_flag:
-            counter = counter + 1
-            noise_feature = _generate_noise(n_sample, y, self.use_classifier)
-
+            # Drop masked features
+            X = X_input.drop(self.drop, axis=1)
             # Add noise feature
-            X = X_input.loc[:, self.mask_].copy()
-            X["noise"] = noise_feature
+            X["noise"] = _generate_noise(
+                n_sample, y, self.use_classifier
+            )
 
             # Initialize estimator
             clf = ExtraTreesClassifier(
@@ -232,67 +283,21 @@ class NoiseWinnowFeatSelect(BaseEstimator, TransformerMixin):
             importances = clf.feature_importances_
             drop_features = importances[:-1] <= (self.k * importances[-1])
 
-            if np.all(~drop_features):
-                LOG.warn(
-                    "All features (%d) are better than noise", self.mask_.sum()
-                )
-            elif np.all(drop_features):
-                LOG.warn("No features are better than noise")
-                # noise better than all features aka no feature better than noise
-            else:
-                LOG.warn(
-                    "Removing feature less relevant than noise: "
-                    f"{', '.join(X.columns[:-1][drop_features])}."
-                )
-                self.mask_[self.mask_] = ~drop_features
+            if not np.all(drop_features):
+                self.drop += X.columns[:-1][drop_features].tolist()
 
             # fail safe
             if counter >= self.n_winnow:
                 noise_flag = False
 
+            counter += 1
+
         self.importances_ = importances[:-1]
         self.importances_snr_ = importances[:-1] / importances[-1]
-        LOG.warn(
-            "Feature selection: %d of %d features better than noise feature",
-            self.mask_.sum(),
-            len(self.mask_),
-        )
         return self
 
-    # def fit_transform(self, X, y=None):
-    #     """Fit the model with X and apply the dimensionality reduction on X.
-    #     Parameters
-    #     ----------
-    #     X : array-like, shape (n_samples, n_features)
-    #         Training data, where n_samples is the number of samples
-    #         and n_features is the number of features.
-    #     Returns
-    #     -------
-    #     X_new : array-like, shape (n_samples, n_components)
-    #     """
-    #     return self.fit(X, y).transform(X, y)
 
-    def transform(self, X, y=None):
-        """Apply dimensionality reduction to X.
-        X is masked.
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            New data, where n_samples is the number of samples
-            and n_features is the number of features.
-        Returns
-        -------
-        X_new : array-like, shape (n_samples, n_components)
-        """
-        from sklearn.utils.validation import check_is_fitted
-
-        check_is_fitted(self, ["mask_"], all_or_any=all)
-        if self.dropped_:
-            self.mask_ = np.insert(self.mask_, self.dropped_, True)
-        return X.loc[:, self.mask_]
-
-
-class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
+class SiteCorrelationSelector(_FeatureSelection):
     """
     Remove features with less importance than a noise feature
     https://gist.github.com/satra/c6eb113055810f19709fa7c5ebd23de8
@@ -308,6 +313,7 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
         max_remove=0.7,
         site_col="site",
     ):
+        self.ignore = [site_col]
         self.disable = disable
         self.target_auc = target_auc
         self.n_estimators = n_estimators
@@ -316,7 +322,7 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
         self.max_iter = max_iter
         self.site_col = site_col
 
-    def fit(self, X, y, n_jobs=1):
+    def fit(self, X, y, n_jobs=None):
         """Fit the model with X.
         This is the workhorse function.
         Parameters
@@ -331,12 +337,6 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
         self.mask_ : array
             Logical array of features to keep
         """
-        from sklearn.ensemble import ExtraTreesClassifier
-        from sklearn.model_selection import train_test_split
-
-        n_feature = np.shape(X)[1]
-        self.mask_ = np.ones(n_feature, dtype=bool)
-
         if self.disable:
             return self
 
@@ -344,11 +344,13 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
         if len(set(sites.values.squeeze().tolist())) == 1:
             return self
 
-        site_index = X.columns.tolist().index(self.site_col)
-        X_input = X.copy()
+        from sklearn.ensemble import ExtraTreesClassifier
+        from sklearn.model_selection import train_test_split
 
-        self.mask_[site_index] = False  # Always remove site
-        n_feature -= 1  # Remove site
+        X_input = X.copy()
+        columns_ = X_input.columns.tolist()
+        self.drop = list(set(self.ignore).intersection(columns_))
+        n_sample, n_feature = np.shape(X_input.drop(self.drop, axis=1))
 
         y_input = OrdinalEncoder().fit_transform(sites)
 
@@ -356,16 +358,17 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
             X_input, y_input, test_size=0.33, random_state=42
         )
 
-        max_remove = n_feature - 5
+        max_remove = max(n_feature - 5, 0)
         if self.max_remove < 1.0:
             max_remove = int(self.max_remove * n_feature)
         elif int(self.max_remove) < n_feature:
             max_remove = int(self.max_remove)
 
-        removed_names = []
-        min_score = 1.0
         i = 0
         while True:
+            if len(self.drop) > max_remove:
+                break
+
             clf = ExtraTreesClassifier(
                 n_estimators=self.n_estimators,
                 criterion="gini",
@@ -383,10 +386,10 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
                 verbose=0,
                 warm_start=False,
                 class_weight="balanced",
-            ).fit(X_train.loc[:, self.mask_], y_train.reshape(-1))
+            ).fit(X_train.drop(self.drop, axis=1), y_train.reshape(-1))
 
             y_predicted = OneHotEncoder(sparse=False).fit(y_input).transform(
-                clf.predict(X_test.loc[:, self.mask_]).reshape(-1, 1).astype("uint8")
+                clf.predict(X_test.drop(self.drop, axis=1)).reshape(-1, 1).astype("uint8")
             )
 
             score = roc_auc_score(
@@ -399,62 +402,23 @@ class SiteCorrelationSelector(BaseEstimator, TransformerMixin):
 
             if score < self.target_auc:
                 break
-            if np.sum(~self.mask_) >= max_remove:
-                break
             if self.max_iter is not None and i >= self.max_iter:
                 break
 
-            importances = np.zeros(self.mask_.shape)
-            importances[self.mask_] = clf.feature_importances_
-            rm_feat = np.argmax(importances)
-
+            rm_feat = np.argmax(clf.feature_importances_)
+            dropped_feat = X_test.drop(self.drop, axis=1).columns[rm_feat]
             # Remove feature
-            self.mask_[rm_feat] = False
-            removed_names.append(X.columns[rm_feat])
-            if score < min_score:
-                min_score = score
+            self.drop.append(dropped_feat)
 
-            LOG.warn(f"Removing [{i}] {X.columns[rm_feat]}")
+            LOG.debug(f"Removing [{i}:{score}] {dropped_feat}")
 
             i += 1
 
-        LOG.warn(f"""\
-Feature selection:
-- {self.mask_.sum()} Kept: {', '.join(X.columns[self.mask_])}.
-- {len(removed_names)} Removed: {', '.join(removed_names)}.""")
         return self
 
-    def fit_transform(self, X, y=None, n_jobs=1):
-        """Fit the model with X and apply the dimensionality reduction on X.
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            Training data, where n_samples is the number of samples
-            and n_features is the number of features.
-        Returns
-        -------
-        X_new : array-like, shape (n_samples, n_components)
-        """
-        return self.fit(X, y, n_jobs=n_jobs).transform(X, y)
-
-    def transform(self, X, y=None):
-        """Apply dimensionality reduction to X.
-        X is masked.
-        Parameters
-        ----------
-        X : array-like, shape (n_samples, n_features)
-            New data, where n_samples is the number of samples
-            and n_features is the number of features.
-        Returns
-        -------
-        X_new : array-like, shape (n_samples, n_components)
-        """
-        from sklearn.utils.validation import check_is_fitted
-
-        check_is_fitted(self, ["mask_"], all_or_any=all)
-        if self.site_col in X.columns.tolist():
-            self.mask_[X.columns.tolist().index(self.site_col)] = True
-        return X.loc[:, self.mask_]
+    def fit_transform(self, X, y=None, **fit_params):
+        """Make targets optional (forcing to look into features)."""
+        return self.fit(X, y, **fit_params).transform(X, y)
 
 
 def _generate_noise(n_sample, y, clf_flag=True):
