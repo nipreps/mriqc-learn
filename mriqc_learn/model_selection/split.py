@@ -57,6 +57,9 @@ class LeavePSitesOut(BaseCrossValidator):
                 f"if the total number of groups is {len(_groups)}"
             )
 
+        if y is not None and hasattr(y, "values"):
+            y = y.values
+
         for test_set_label in combinations(_groups, self.n_groups):
             test_index = np.zeros(_num_samples(X), dtype=bool)
 
@@ -64,7 +67,7 @@ class LeavePSitesOut(BaseCrossValidator):
                 test_index[groups == label] = True
 
             if self.robust is True and y is not None:
-                if len(set(y[test_index].values.squeeze().tolist())) == 1:
+                if len(set(y[test_index].squeeze().tolist())) == 1:
                     continue
 
             yield test_index
