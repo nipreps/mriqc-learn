@@ -21,7 +21,7 @@
 #     https://www.nipreps.org/community/licensing/
 #
 # STATEMENT OF CHANGES: This file is derived from the sources of scikit-learn 0.19,
-# which licensed under the BSD 3-clause.
+# which is licensed under the BSD 3-clause.
 # This file contains extensions and modifications to the original code.
 from itertools import combinations
 
@@ -45,11 +45,11 @@ class LeavePSitesOut(BaseCrossValidator):
     def _iter_test_masks(self, X, y=None, groups=None):
         if groups is None:
             if X is not None and self.colname in X.columns:
-                groups = X[[self.colname]]
+                groups = X[[self.colname]].values.squeeze()
             else:
                 raise ValueError("The 'groups' parameter should not be None.")
 
-        _groups = groups[[self.colname]].groupby(self.colname).groups
+        _groups = set(groups)
 
         if len(_groups) <= self.n_groups:
             raise ValueError(
@@ -57,14 +57,14 @@ class LeavePSitesOut(BaseCrossValidator):
                 f"if the total number of groups is {len(_groups)}"
             )
 
-        for test_set_label in combinations(list(_groups.keys()), self.n_groups):
+        for test_set_label in combinations(_groups, self.n_groups):
             test_index = np.zeros(_num_samples(X), dtype=bool)
 
             for label in test_set_label:
-                test_index[_groups[label]] = True
+                test_index[groups == label] = True
 
             if self.robust is True and y is not None:
-                if len(set(y[test_index].values.tolist())) == 1:
+                if len(set(y[test_index].values.squeeze().tolist())) == 1:
                     continue
 
             yield test_index
