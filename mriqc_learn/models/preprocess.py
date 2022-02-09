@@ -25,7 +25,12 @@ import logging
 import numpy as np
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import roc_auc_score
-from sklearn.preprocessing import RobustScaler, OrdinalEncoder, OneHotEncoder
+from sklearn.preprocessing import (
+    RobustScaler,
+    OrdinalEncoder,
+    OneHotEncoder,
+    LabelBinarizer,
+)
 
 
 LOG = logging.getLogger("mriqc_learn")
@@ -221,13 +226,12 @@ class NoiseWinnowFeatSelect(_FeatureSelection):
             f"Running Winnow selection with {n_feature} features."
         )
 
-        # Prepare targets
-        if y is None:
-            y = X[["site"]].copy().values
-            self.use_classifier = True
-
         if self.use_classifier:
-            y = OrdinalEncoder().fit_transform(y)
+            multiclass = len(set(y.squeeze().tolist())) > 2
+            if multiclass:
+                y = OrdinalEncoder().fit_transform(y)
+            else:
+                y = LabelBinarizer().fit_transform(y)
 
         if hasattr(y, "values"):
             y = y.values.squeeze()
@@ -433,6 +437,8 @@ def _generate_noise(n_sample, y, clf_flag=True):
     noise_corr = 1.0
     while noise_corr > 0.05:
         noise_feature = np.random.normal(loc=0, scale=10.0, size=(n_sample, 1))
-        noise_corr = np.abs(np.corrcoef(noise_feature, y[:, np.newaxis], rowvar=0)[0][1])
+        noise_corr = np.abs(np.corrcoef(
+            noise_feature, y.reshape((n_sample, 1)), rowvar=0
+        )[0][1])
 
     return noise_feature
