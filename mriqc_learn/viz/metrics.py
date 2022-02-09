@@ -35,7 +35,7 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
         sort_by.append("rating")
 
     X = X.sort_values(by=sort_by).copy()
-    sites = X.site.values.ravel().tolist()
+    sites = X.site.values.reshape(-1).tolist()
 
     # Select features
     numdata = X.select_dtypes([np.number]) if cols is None else X[cols]
@@ -56,7 +56,7 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
     spines = []
     X["index"] = range(len(X))
     for site in list(set(sites)):
-        indices = X.loc[X.site == site, "index"].values.ravel().tolist()
+        indices = X.loc[X.site == site, "index"].values.reshape(-1).tolist()
         locations.append(int(np.average(indices)))
         spines.append(indices[0])
 
@@ -66,7 +66,7 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
 
     plt.xticks(
         range(numdata.shape[1]),
-        numdata.columns.ravel().tolist(),
+        numdata.columns,
         rotation="vertical",
     )
     plt.yticks(locations, list(set(sites)))
