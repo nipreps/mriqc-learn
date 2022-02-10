@@ -5,7 +5,7 @@ of T1w images.
 
 .. tip::
      You can customize the MRIQC classifier to the T1w images generated at your
-     scanning site (see :ref:`clfcustom`).
+     scanning site.
 
 
 From our preprint `MRIQC: Advancing the Automatic Prediction of Image Quality in MRI from Unseen Sites
