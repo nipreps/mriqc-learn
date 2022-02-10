@@ -70,7 +70,7 @@ def load_data(
     if path is None:
         path = Path(pkgrf("mriqc_learn.datasets", "abide.tsv"))
 
-    dataframe = pd.read_csv(path, index_col=None, delimiter="\s+")
+    dataframe = pd.read_csv(path, index_col=None, delimiter=r"\s+")
 
     if split_strategy is None or split_strategy.lower() == "none":
         return (
