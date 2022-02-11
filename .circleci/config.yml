@@ -33,7 +33,7 @@ jobs:
             THISVERSION=$( python3 setup.py --version )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             python3 -m pip install dist/mriqc_learn*.tar.gz
-            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as sdc; print(sdc.__version__, end="")')
+            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
             test "${INSTALLED_VERSION}" = "${THISVERSION}"
@@ -46,7 +46,7 @@ jobs:
             THISVERSION=$( python3 setup.py --version )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
             python3 -m pip install dist/mriqc_learn*.whl
-            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as sdc; print(sdc.__version__, end="")')
+            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
             test "${INSTALLED_VERSION}" = "${THISVERSION}"
