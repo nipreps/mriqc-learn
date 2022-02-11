@@ -1,0 +1,68 @@
+{
+  "title": "Open source scientific software: MRIQC-learn",
+  "description": "Automatic prediction of MRI quality using MRIQC's image quality metrics as features",
+  "creators": [
+    {
+      "orcid": "0000-0002-1668-9629",
+      "affiliation": "Lausanne University Hospital and University of Lausanne, Lausanne, Switzerland",
+      "name": "Céline Provins"
+    },
+    {
+      "affiliation": "University of Washington, Seattle, WA, USA",
+      "name": "McKenzie P. Hagen"
+    },
+    {
+      "orcid": "0000-0001-8435-6191",
+      "affiliation": "Lausanne University Hospital and University of Lausanne, Lausanne, Switzerland",
+      "name": "Oscar Esteban"
+    }
+  ],
+  "contributors": [
+    {
+      "orcid": "0000-0003-3321-7583",
+      "affiliation": "Google LLC",
+      "name": "Krzysztof J. Gorgolewski",
+      "type": "Researcher"
+    },
+    {
+      "orcid": "0000-0002-6533-164X",
+      "affiliation": "Department of Psychology, Stanford University, CA, USA",
+      "name": "Christopher J. Markiewicz",
+      "type": "Researcher"
+    },
+    {
+      "orcid": "0000-0002-7252-7771",
+      "affiliation": "Department of Psychology, Stanford University, CA, USA",
+      "name": "Mathias Goncalves",
+      "type": "Researcher"
+    },
+    {
+      "orcid": "0000-0001-6755-0259",
+      "affiliation": "Department of Psychology, Stanford University, CA, USA",
+      "name": "Russell A. Poldrack",
+      "type": "Researcher"
+    }
+  ],
+  "keywords": [
+    "neuroimaging",
+    "workflow",
+    "pipeline",
+    "quality-control",
+    "fMRI",
+    "BIDS"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "http://mriqc.readthedocs.io",
+      "relation": "documents",
+      "scheme": "url"
+    },
+    {
+      "identifier": "10.1371/journal.pone.0184661",
+      "relation": "isPartOf",
+      "scheme": "doi"
+    }
+  ],
+  "license": "Apache-2.0",
+  "upload_type": "software"
+}
