@@ -1,6 +1,6 @@
 {
   "title": "Open source scientific software: MRIQC-learn",
-  "description": "Automatic prediction of MRI quality using MRIQC's image quality metrics as features",
+  "description": "Learning on MRIQC-generated image quality metrics (IQMs).",
   "creators": [
     {
       "orcid": "0000-0002-1668-9629",
