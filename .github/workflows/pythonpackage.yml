@@ -31,7 +31,7 @@ jobs:
       run: |
         python -m venv /tmp/buildenv
         source /tmp/buildenv/bin/activate
-        python -m pip install -U setuptools pip wheel twine docutils
+        python -m pip install -U "setuptools<60" pip wheel twine docutils
 
         # Interpolate version
         if [[ "$GITHUB_REF" == refs/tags/* ]]; then
