@@ -227,10 +227,11 @@ class NoiseWinnowFeatSelect(_FeatureSelection):
         )
 
         if self.use_classifier:
-            multiclass = len(set(y.squeeze().tolist())) > 2
-            if multiclass:
+            target_dim = np.squeeze(y).ndim
+            multiclass = target_dim == 2 or np.unique(y).size > 2
+            if multiclass and target_dim == 1:
                 y = OrdinalEncoder().fit_transform(y)
-            else:
+            elif not multiclass:
                 y = LabelBinarizer().fit_transform(y)
 
         if hasattr(y, "values"):
