@@ -27,7 +27,7 @@ from itertools import combinations
 
 import numpy as np
 from sklearn.model_selection import BaseCrossValidator
-from sklearn.utils.validation import _num_samples
+from sklearn.utils.validation import _num_samples, indexable
 
 
 class LeavePSitesOut(BaseCrossValidator):
@@ -42,7 +42,7 @@ class LeavePSitesOut(BaseCrossValidator):
         self.colname = colname
         self.robust = robust
 
-    def _iter_test_masks(self, X, y=None, groups=None):
+    def _iter_test_masks(self, X, y=None, groups=None, return_key=False):
         if groups is None:
             if X is not None and self.colname in X.columns:
                 groups = X[[self.colname]].values.squeeze()
@@ -67,13 +67,14 @@ class LeavePSitesOut(BaseCrossValidator):
                 test_index[groups == label] = True
 
             if self.robust is True and y is not None:
-                targets = y[test_index].squeeze()
-                if targets.ndim == 1 and len(np.unique(targets)) == 1:
-                    continue
-                elif targets.ndim == 2 and np.any(targets.sum(0) == targets.shape[0]):
+                targets = np.squeeze(y[test_index])
+                if np.unique(targets, axis=0).shape[0] == 1:
                     continue
 
-            yield test_index
+            if len(test_set_label) == 1:
+                test_set_label = test_set_label[0]
+
+            yield test_index if not return_key else (test_set_label, test_index)
 
     def get_n_splits(self, X=None, y=None, groups=None):
         """Returns the number of splitting iterations in the cross-validator
@@ -94,3 +95,14 @@ class LeavePSitesOut(BaseCrossValidator):
             Returns the number of splitting iterations in the cross-validator.
         """
         return len(list(self._iter_test_masks(X, y, groups)))
+
+    def split(self, X, y=None, groups=None, return_key=False):
+        X, y, groups = indexable(X, y, groups)
+        indices = np.arange(_num_samples(X))
+        for labels, test_index in self._iter_test_masks(X, y, groups, return_key=True):
+            train_index = indices[np.logical_not(test_index)]
+            test_index = indices[test_index]
+            yield (
+                (train_index, test_index) if not return_key else
+                (train_index, (labels, test_index))
+            )
