@@ -67,7 +67,10 @@ class LeavePSitesOut(BaseCrossValidator):
                 test_index[groups == label] = True
 
             if self.robust is True and y is not None:
-                if len(set(y[test_index].squeeze().tolist())) == 1:
+                targets = y[test_index].squeeze()
+                if targets.ndim == 1 and len(np.unique(targets)) == 1:
+                    continue
+                elif targets.ndim == 2 and np.any(targets.sum(0) == targets.shape[0]):
                     continue
 
             yield test_index
