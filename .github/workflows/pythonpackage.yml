@@ -31,7 +31,7 @@ jobs:
       run: |
         python -m venv /tmp/buildenv
         source /tmp/buildenv/bin/activate
-        python -m pip install -U "setuptools<60" pip wheel twine docutils
+        python -m pip install -U "setuptools~=58.0" pip wheel twine docutils
 
         # Interpolate version
         if [[ "$GITHUB_REF" == refs/tags/* ]]; then
@@ -41,10 +41,10 @@ jobs:
         THISVERSION=${TAG:-$THISVERSION}
         echo "Expected VERSION: \"${THISVERSION}\""
         echo "THISVERSION=${THISVERSION}" >> ${GITHUB_ENV}
-        
+
         python setup.py sdist
         python -m twine check dist/mriqc_learn*.tar.gz
-        
+
         python setup.py bdist_wheel
         python -m twine check dist/mriqc_learn*.whl
 
