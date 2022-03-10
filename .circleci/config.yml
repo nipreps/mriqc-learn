@@ -5,7 +5,7 @@ orbs:
 jobs:
   test_package:
     docker:
-      - image: circleci/python:3.8.5
+      - image: cimg/python:3.8.5
     working_directory: /tmp/src/mriqc_learn
     steps:
       - checkout
@@ -51,7 +51,7 @@ jobs:
 
   deploy_pypi:
     docker:
-      - image: circleci/python:3.8.5
+      - image: cimg/python:3.8.5
     working_directory: /tmp/src/mriqc_learn
     steps:
       - attach_workspace:
@@ -72,9 +72,7 @@ workflows:
       - test_package:
           filters:
             branches:
-              ignore:
-                - /docs?\/.*/
-                - /tests?\/.*/
+              ignore: /.*/
             tags:
               only: /.*/
 
