@@ -21,38 +21,54 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Create a pipeline for nested cross-validation."""
+from pkg_resources import resource_filename as pkgrf
+
+from joblib import load
 from sklearn.pipeline import Pipeline
 from mriqc_learn.models import preprocess as pp
 from sklearn.ensemble import RandomForestClassifier as RFC
 
 
+def load_model():
+    return load(pkgrf("mriqc_learn.data", "classifier.joblib"))
+
+
 def init_pipeline():
     steps = [
-        ("drop_ft", pp.DropColumns(
-            drop=[f"size_{ax}" for ax in "xyz"] + [f"spacing_{ax}" for ax in "xyz"]
-        )),
-        ("scale", pp.SiteRobustScaler(
-            with_centering=True,
-            with_scaling=True,
-            unit_variance=True,
-        )),
+        (
+            "drop_ft",
+            pp.DropColumns(
+                drop=[f"size_{ax}" for ax in "xyz"] + [f"spacing_{ax}" for ax in "xyz"]
+            ),
+        ),
+        (
+            "scale",
+            pp.SiteRobustScaler(
+                with_centering=True,
+                with_scaling=True,
+                unit_variance=True,
+            ),
+        ),
         ("site_pred", pp.SiteCorrelationSelector()),
         ("winnow", pp.NoiseWinnowFeatSelect(use_classifier=True)),
         ("drop_site", pp.DropColumns(drop=["site"])),
-        ("rfc", RFC(
-            bootstrap=True,
-            class_weight=None,
-            criterion="gini",
-            max_depth=10,
-            max_features="sqrt",
-            max_leaf_nodes=None,
-            min_impurity_decrease=0.0,
-            min_samples_leaf=10,
-            min_samples_split=10,
-            min_weight_fraction_leaf=0.0,
-            n_estimators=400,
-            oob_score=True,
-        ))
+        (
+            "rfc",
+            RFC(
+                bootstrap=True,
+                class_weight=None,
+                criterion="gini",
+                max_depth=10,
+                max_features="sqrt",
+                max_leaf_nodes=None,
+                min_impurity_decrease=0.0,
+                min_samples_leaf=10,
+                min_samples_split=10,
+                min_weight_fraction_leaf=0.0,
+                n_estimators=400,
+                oob_score=True,
+            ),
+        ),
     ]
 
     return Pipeline(steps)
