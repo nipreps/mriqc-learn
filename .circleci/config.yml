@@ -14,8 +14,7 @@ jobs:
           command: |
             python3 -m venv /tmp/buildenv
             source /tmp/buildenv/bin/activate
-            python3 -m pip install "setuptools ~= 45.0" wheel "setuptools_scm[toml] >= 6.2" \
-                "pip>=21" twine docutils
+            python -m pip install -U "setuptools~=58.0" "setuptools_scm>=6.2" pip wheel twine docutils
             python setup.py sdist bdist_wheel
             twine check dist/mriqc_learn*
       - store_artifacts:
@@ -28,12 +27,11 @@ jobs:
           command: |
             python3 -m venv /tmp/install_sdist
             source /tmp/install_sdist/bin/activate
-            python3 -m pip install -U pip
-            python3 -m pip install "setuptools ~= 45.0"
-            THISVERSION=$( python3 setup.py --version )
+            python -m pip install -U pip "setuptools~=58.0" "setuptools_scm>=6.2"
+            THISVERSION=$( python setup.py --version )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python3 -m pip install dist/mriqc_learn*.tar.gz
-            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
+            python -m pip install dist/mriqc-learn*.tar.gz
+            INSTALLED_VERSION=$(python -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
             test "${INSTALLED_VERSION}" = "${THISVERSION}"
@@ -42,11 +40,11 @@ jobs:
           command: |
             python3 -m venv /tmp/install_wheel
             source /tmp/install_wheel/bin/activate
-            python3 -m pip install "setuptools ~= 45.0" "pip>=10.0.1"
-            THISVERSION=$( python3 setup.py --version )
+            python -m pip install "setuptools~=58.0" "setuptools_scm>=6.2" wheel "pip>=10.0.1"
+            THISVERSION=$( python setup.py --version )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python3 -m pip install dist/mriqc_learn*.whl
-            INSTALLED_VERSION=$(python3 -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
+            python -m pip install dist/mriqc_learn*.whl
+            INSTALLED_VERSION=$(python -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
             test "${INSTALLED_VERSION}" = "${THISVERSION}"
@@ -63,9 +61,9 @@ jobs:
           command: |
             python3 -m venv /tmp/upload
             source /tmp/upload/bin/activate
-            python3 -m pip install twine
-            python3 -m twine check dist/*
-            python3 -m twine upload dist/* --non-interactive
+            python -m pip install twine
+            python -m twine check dist/*
+            python -m twine upload dist/* --non-interactive
 
 workflows:
   version: 2
