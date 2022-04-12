@@ -21,12 +21,14 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Peeking into IQMs (image quality metrics)."""
-import matplotlib.pyplot as plt
+from collections import Counter
 import numpy as np
+import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
 
 def plot_batches(X, cols=None, out_file=None, site_labels="left"):
+    """Plot a matrix of images x metrix clustered by sites."""
     sort_by = ["site"]
     if "database" in X.columns:
         sort_by.insert(0, "database")
@@ -100,4 +102,76 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
 
     if out_file is not None:
         fig.savefig(out_file, bbox_inches="tight", pad_inches=0, dpi=300)
+    return fig
+
+
+def plot_histogram(X, X_scaled, metric="snrd_total"):
+    """Plot a histogram with different hues for different sites in X."""
+    fig, (ax1, ax2) = plt.subplots(
+        1, 2, figsize=(20, 8), sharey=False, constrained_layout=True
+    )
+    fig.set_constrained_layout_pads(w_pad=0.1, wspace=0)
+
+    colors = list(plt.cm.get_cmap("tab20").colors)
+    colors = colors[::2] + colors[1::2]
+    ax1.set_prop_cycle(color=colors)
+    ax2.set_prop_cycle(color=colors)
+
+    groups = Counter(X.site.values.squeeze().tolist()).most_common()
+    nstd_iqm_min, nstd_iqm_max = X[metric].min(), X[metric].max()
+    nstd_bin_sides = np.linspace(nstd_iqm_min, nstd_iqm_max, 101, endpoint=True)
+    nstd_width = nstd_bin_sides[1] - nstd_bin_sides[0]
+    nstd_bin_centers = nstd_bin_sides[:-1] + 0.5 * nstd_width
+
+    std_iqm_min, std_iqm_max = X_scaled[metric].min(), X_scaled[metric].max()
+    std_bin_sides = np.linspace(std_iqm_min, std_iqm_max, 101, endpoint=True)
+    std_width = std_bin_sides[1] - std_bin_sides[0]
+    std_bin_centers = std_bin_sides[:-1] + 0.5 * std_width
+
+    full_nstd_hist, _ = np.histogram(
+        X[metric].values.squeeze().tolist(),
+        bins=100,
+        range=(nstd_iqm_min, nstd_iqm_max),
+        density=True,
+    )
+    full_std_hist, _ = np.histogram(
+        X_scaled[metric].values.squeeze().tolist(),
+        bins=100,
+        range=(std_iqm_min, std_iqm_max),
+        density=True,
+    )
+
+    for site, n in groups:
+        nstd_site_data = X[X.site.str.contains(site)]
+        nstd_iqm = nstd_site_data[metric].values.squeeze().tolist()
+        nstd_hist, _ = np.histogram(
+            nstd_iqm,
+            bins=100,
+            # weights=[1 / len(X)] * len(nstd_iqm),
+            range=(nstd_iqm_min, nstd_iqm_max),
+        )
+
+        std_site_data = X_scaled[X_scaled.site.str.contains(site)]
+        std_iqm = std_site_data[metric].values.squeeze().tolist()
+        std_hist, _ = np.histogram(
+            std_iqm,
+            bins=100,
+            # weights=[1 / len(X)] * len(std_iqm),
+            range=(std_iqm_min, std_iqm_max),
+        )
+
+        ax1.bar(
+            nstd_bin_centers,
+            height=nstd_hist * full_nstd_hist,
+            label=f"{site} ({n})",
+            width=0.75 * nstd_width,
+        )
+        ax2.bar(
+            std_bin_centers,
+            height=std_hist * full_std_hist,
+            label=f"{site} ({n})",
+            width=0.75 * std_width,
+        )
+
+    ax2.legend(prop={"size": 18})
     return fig
