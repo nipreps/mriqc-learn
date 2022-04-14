@@ -81,7 +81,6 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
     ax.grid(False)
 
     ticks_font = FontProperties(
-        family="FreeSans",
         style="normal",
         size=14,
         weight="normal",
@@ -91,7 +90,6 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
         label.set_fontproperties(ticks_font)
 
     ticks_font = FontProperties(
-        family="FreeSans",
         style="normal",
         size=12,
         weight="normal",
