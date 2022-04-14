@@ -158,7 +158,7 @@ def raters_variability_plot(
     sites_len, sites_list = zip(*sorted(zip(sites_len, sites_list)))
 
     blocks = [(slen - 1) // width + 1 for slen in sites_len]
-    fig = plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize, facecolor="white")
     gs = GridSpec(
         len(sites_list), 1, width_ratios=[1], height_ratios=blocks, hspace=0.05
     )
@@ -280,15 +280,16 @@ def raters_variability_plot(
         transform=newax.transAxes,
     )
 
-    if out_file is None:
+    if out_file is True:
         out_file = "raters.svg"
 
-    fname, ext = op.splitext(out_file)
-    if ext[1:] not in ["pdf", "svg", "png"]:
-        ext = ".svg"
-        out_file = fname + ".svg"
+    if out_file:
+        fname, ext = op.splitext(out_file)
+        if ext[1:] not in ["pdf", "svg", "png"]:
+            ext = ".svg"
+            out_file = fname + ".svg"
 
-    fig.savefig(
-        op.abspath(out_file), format=ext[1:], bbox_inches="tight", pad_inches=0, dpi=300
-    )
+        fig.savefig(
+            op.abspath(out_file), format=ext[1:], bbox_inches="tight", pad_inches=0, dpi=300
+        )
     return fig

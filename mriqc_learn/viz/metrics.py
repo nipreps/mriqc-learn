@@ -103,7 +103,7 @@ def plot_batches(X, cols=None, out_file=None, site_labels="left"):
     return fig
 
 
-def plot_histogram(X, X_scaled, metric="snrd_total"):
+def plot_histogram(X, X_scaled, metric=None):
     """Plot a histogram with different hues for different sites in X."""
     fig, (ax1, ax2) = plt.subplots(
         1, 2, figsize=(20, 8), sharey=False, constrained_layout=True
