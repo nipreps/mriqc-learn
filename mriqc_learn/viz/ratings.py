@@ -24,11 +24,7 @@
 import os.path as op
 from math import pi
 import numpy as np
-import pandas as pd
 
-import matplotlib as mpl
-
-mpl.use("pgf")
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.font_manager import FontProperties
@@ -36,7 +32,7 @@ from matplotlib.patches import RegularPolygon
 
 
 def plot_raters(dataframe, ax=None, width=101, size=0.40, default="whitesmoke"):
-    raters = sorted(dataframe.columns.ravel().tolist())
+    raters = sorted(dataframe.columns.tolist())
     dataframe = dataframe.sort_values(by=raters, ascending=True)
     matrix = dataframe.values
     nsamples, nraters = dataframe.shape
@@ -144,43 +140,9 @@ def raters_variability_plot(
     width=101,
     out_file=None,
     raters=["rater_1", "rater_2", "rater_3"],
-    only_overlap=True,
+    only_overlap=False,
     rater_names=["Rater 1", "Rater 2a", "Rater 2b"],
 ):
-    pgf_with_custom_preamble = {
-        #     'font.sans-serif': ['Helvetica Light'],
-        #     'font.family': 'sans-serif', # use serif/main font for text elements
-        "text.usetex": True,  # use inline math for ticks
-        "pgf.rcfonts": False,  # don't setup fonts from rc parameters
-        "pgf.texsystem": "xelatex",
-        #    'verbose.level': 'debug-annoying',
-        "pgf.preamble": [
-            #         r'\renewcommand{\sfdefault}{phv}',
-            #         r'\usepackage[scaled=.92]{helvet}',
-            r"\usepackage{fontspec}",
-            r"""\usepackage{fontspec}
-    \setsansfont{HelveticaLTStd-Light}[
-    Extension=.otf,
-    BoldFont=HelveticaLTStd-Bold,
-    ItalicFont=HelveticaLTStd-LightObl,
-    BoldItalicFont=HelveticaLTStd-BoldObl,
-    ]
-    \setmainfont{HelveticaLTStd-Light}[
-    Extension=.otf,
-    BoldFont=HelveticaLTStd-Bold,
-    ItalicFont=HelveticaLTStd-LightObl,
-    BoldItalicFont=HelveticaLTStd-BoldObl,
-    ]
-    """,
-            r"\renewcommand\familydefault{\sfdefault}",
-            #         r'\setsansfont[Extension=.otf]{Helvetica-LightOblique}',
-            #         r'\setmainfont[Extension=.ttf]{DejaVuSansCondensed}',
-            #         r'\setmainfont[Extension=.otf]{FiraSans-Light}',
-            #         r'\setsansfont[Extension=.otf]{FiraSans-Light}',
-        ],
-    }
-    mpl.rcParams.update(pgf_with_custom_preamble)
-
     if only_overlap:
         mdata = mdata[np.all(~np.isnan(mdata[raters]), axis=1)]
     # Swap raters 2 and 3
@@ -242,7 +204,7 @@ def raters_variability_plot(
             text_y,
             "%2.1f%%" % good,
             color="limegreen",
-            weight=1000,
+            weight=500,
             size=25,
             horizontalalignment="right",
             verticalalignment="center",
@@ -253,7 +215,7 @@ def raters_variability_plot(
             text_y,
             "%2.1f%%" % max((0.0, 100 - good - bad)),
             color="dimgray",
-            weight=1000,
+            weight=500,
             size=25,
             horizontalalignment="right",
             verticalalignment="center",
@@ -264,7 +226,7 @@ def raters_variability_plot(
             text_y,
             "%2.1f%%" % bad,
             color="tomato",
-            weight=1000,
+            weight=500,
             size=25,
             horizontalalignment="right",
             verticalalignment="center",
@@ -289,7 +251,7 @@ def raters_variability_plot(
         newax.text(
             text_x - 0.6365,
             text_y,
-            "\\textbf{%d}" % (i + 1),
+            f"{i + 1}",
             color="w",
             size=25,
             horizontalalignment="left",
