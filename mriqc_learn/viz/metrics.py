@@ -173,3 +173,90 @@ def plot_histogram(X, X_scaled, metric=None):
 
     ax2.legend(prop={"size": 18})
     return fig
+
+
+def plot_corrmat(
+    data,
+    col_labels=None,
+    row_labels=None,
+    ax=None,
+    cbar_kw={},
+    cbarlabel="",
+    symmetric=True,
+    figsize=(20, 20),
+    **kwargs,
+):
+    """
+    Create a heatmap from a pandas/numpy array.
+
+    Parameters
+    ----------
+    data
+        A 2D numpy array of shape (M, N).
+    row_labels
+        A list or array of length M with the labels for the rows.
+    col_labels
+        A list or array of length N with the labels for the columns.
+    ax
+        A `matplotlib.axes.Axes` instance to which the heatmap is plotted.  If
+        not provided, use current axes or create a new one.  Optional.
+    cbar_kw
+        A dictionary with arguments to `matplotlib.Figure.colorbar`.  Optional.
+    cbarlabel
+        The label for the colorbar.  Optional.
+    **kwargs
+        All other arguments are forwarded to `imshow`.
+
+    """
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+
+    if hasattr(data, "columns"):
+        col_labels = data.columns.tolist()
+        data = data.values
+
+    if not ax:
+        ax = plt.gca()
+
+    if symmetric:
+        data[np.triu(np.ones(data.shape, dtype=bool))] = np.nan
+
+    kwargs["cmap"] = kwargs.pop("cmap", "PuOr_r")
+    kwargs["vmin"] = kwargs.pop("vmin", -1.0)
+    kwargs["vmax"] = kwargs.pop("vmax", 1.0)
+
+    # Inset axis for the colorbar
+    axins1 = inset_axes(
+        ax,
+        width="50%",  # width = 50% of parent_bbox width
+        height="2%",  # height : 5%
+        loc="upper right",
+    )
+
+    # Plot the heatmap
+    im = ax.imshow(data, **kwargs)
+
+    # Create colorbar
+    cbar = plt.gcf().colorbar(im, cax=axins1, orientation="horizontal", **cbar_kw)
+    cbar.ax.set_ylabel(cbarlabel, rotation=-90, va="bottom")
+
+    # Show all ticks and label them with the respective list entries.
+    ax.set_xticks(np.arange(data.shape[1]))
+    ax.set_xticklabels(col_labels)
+    ax.set_yticks(np.arange(data.shape[0]))
+    ax.set_yticklabels(col_labels)
+
+    # Let the horizontal axes labeling appear on top.
+    ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)
+
+    # Rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
+
+    # Turn spines off and create white grid.
+    ax.spines[:].set_visible(False)
+
+    ax.set_xticks(np.arange(data.shape[1] + 1) - 0.5, minor=True)
+    ax.set_yticks(np.arange(data.shape[0] + 1) - 0.5, minor=True)
+    ax.grid(which="minor", color="w", linestyle="-", linewidth=2)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    return im, cbar
