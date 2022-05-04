@@ -183,7 +183,7 @@ def plot_corrmat(
     cbar_kw={},
     cbarlabel="",
     symmetric=True,
-    figsize=(20, 20),
+    figsize=None,
     **kwargs,
 ):
     """
@@ -213,6 +213,9 @@ def plot_corrmat(
     if hasattr(data, "columns"):
         col_labels = data.columns.tolist()
         data = data.values
+
+    if figsize is not None:
+        plt.figure(figsize=figsize)
 
     if not ax:
         ax = plt.gca()
