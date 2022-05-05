@@ -25,8 +25,8 @@ from pkg_resources import resource_filename as pkgrf
 
 from joblib import load
 from sklearn.pipeline import Pipeline
-from mriqc_learn.models import preprocess as pp
 from sklearn.ensemble import RandomForestClassifier as RFC
+from mriqc_learn.models import preprocess as pp
 
 
 def load_model():
