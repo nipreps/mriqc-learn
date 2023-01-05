@@ -6,6 +6,9 @@ jobs:
   test_package:
     docker:
       - image: cimg/python:3.8.5
+        auth:
+          username: $DOCKER_USER
+          password: $DOCKER_PAT
     working_directory: /tmp/src/mriqc_learn
     steps:
       - checkout
@@ -70,6 +73,8 @@ workflows:
   build_deploy:
     jobs:
       - test_package:
+          context:
+            - nipreps-common
           filters:
             branches:
               ignore: /.*/
@@ -77,6 +82,8 @@ workflows:
               only: /.*/
 
       - deploy_pypi:
+          context:
+            - nipreps-common
           requires:
             - test_package
           filters:
