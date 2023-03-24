@@ -213,9 +213,8 @@ def plot_corrmat(
     """
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-    # Cluster rows (if arguments enabled)
+    # Cluster rows and columns (if arguments enabled)
     if sorted:
-        import pandas as pd
         from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
         Z = linkage(data, 'complete', optimal_ordering=True)
@@ -228,14 +227,8 @@ def plot_corrmat(
         # Keep the indices to sort labels
         labels_order = np.argsort(labels)
 
-        # Build a new dataframe with the sorted columns
-        for idx, i in enumerate(data.columns[labels_order]):
-            if idx == 0:
-                clustered = pd.DataFrame(data[i])
-            else:
-                df_to_append = pd.DataFrame(data[i])
-                clustered = pd.concat([clustered, df_to_append], axis=1)
-        data = clustered
+        # Reorder data
+        data = data.take(labels_order, axis=0).take(labels_order, axis=1)
 
     if hasattr(data, "columns"):
         col_labels = data.columns
