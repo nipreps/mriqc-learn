@@ -184,7 +184,7 @@ def plot_corrmat(
     cbarlabel="",
     symmetric=True,
     figsize=None,
-    sort=False,
+    sorted=False,
     **kwargs,
 ):
     """
@@ -205,7 +205,7 @@ def plot_corrmat(
         A dictionary with arguments to `matplotlib.Figure.colorbar`.  Optional.
     cbarlabel
         The label for the colorbar.  Optional.
-    sort
+    sorted : :obj:`bool`
         Flag to perform hierachical clustering on the correlation plot
     **kwargs
         All other arguments are forwarded to `imshow`.
@@ -214,7 +214,7 @@ def plot_corrmat(
     from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
     # Cluster rows (if arguments enabled)
-    if sort:
+    if sorted:
         import pandas as pd
         from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
