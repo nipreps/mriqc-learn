@@ -217,13 +217,13 @@ def plot_corrmat(
     if sorted:
         from scipy.cluster.hierarchy import linkage, dendrogram, fcluster
 
-        Z = linkage(data, 'complete', optimal_ordering=True)
+        Z = linkage(data, "complete", optimal_ordering=True)
 
         dendrogram(Z, labels=data.columns, no_plot=True)
 
         # Clusterize the data
         threshold = 0.1
-        labels = fcluster(Z, threshold, criterion='distance')
+        labels = fcluster(Z, threshold, criterion="distance")
         # Keep the indices to sort labels
         labels_order = np.argsort(labels)
 
@@ -273,10 +273,16 @@ def plot_corrmat(
     ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)
 
     # Rotate the tick labels and set their alignment.
-    plt.setp(ax.get_xticklabels(), rotation=90, ha="right", va="center", rotation_mode="anchor")
+    plt.setp(
+        ax.get_xticklabels(),
+        rotation=90,
+        ha="right",
+        va="center",
+        rotation_mode="anchor",
+    )
 
     # Turn spines off and create white grid.
-    ax.spines[:].set_visible(False)
+    plt.setp(ax.spines.values(), visible=False)
 
     ax.set_xticks(np.arange(data.shape[1] + 1) - 0.5, minor=True)
     ax.set_yticks(np.arange(data.shape[0] + 1) - 0.5, minor=True)
