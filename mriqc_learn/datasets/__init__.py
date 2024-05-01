@@ -21,6 +21,7 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Public API for MRIQC-learn datasets."""
+
 from pathlib import Path
 from pkg_resources import resource_filename as pkgrf
 
@@ -101,7 +102,7 @@ def load_data(
     if split_strategy is None or split_strategy.lower() == "none":
         return (
             dataframe[dataframe.columns[xy_index:]],
-            dataframe[dataframe.columns[:xy_index]]
+            dataframe[dataframe.columns[:xy_index]],
         ), (None, None)
 
     n = len(dataframe)
@@ -122,8 +123,5 @@ def load_data(
 
     return (
         train_df[dataframe.columns[xy_index:]],
-        train_df[dataframe.columns[:xy_index]]
-    ), (
-        test_df[dataframe.columns[xy_index:]],
-        test_df[dataframe.columns[:xy_index]]
-    )
+        train_df[dataframe.columns[:xy_index]],
+    ), (test_df[dataframe.columns[xy_index:]], test_df[dataframe.columns[:xy_index]])
