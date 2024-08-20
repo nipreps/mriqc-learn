@@ -81,6 +81,9 @@ workflows:
       - test_package:
           context:
             - nipreps-common
+          filters:
+            tags:
+              only: /.*/
 
       - deploy_pypi:
           context:
