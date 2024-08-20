@@ -32,7 +32,8 @@ jobs:
           command: |
             python3 -m venv /tmp/install_sdist
             source /tmp/install_sdist/bin/activate
-                    
+            python -m pip install -U build hatch pip twine
+
             THISVERSION=$( python -m hatch version | tail -n1 | xargs )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
 
@@ -46,6 +47,7 @@ jobs:
           command: |
             python3 -m venv /tmp/install_wheel
             source /tmp/install_wheel/bin/activate
+            python -m pip install -U build hatch pip twine
 
             THISVERSION=$( python -m hatch version | tail -n1 | xargs )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
@@ -79,11 +81,6 @@ workflows:
       - test_package:
           context:
             - nipreps-common
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
 
       - deploy_pypi:
           context:
