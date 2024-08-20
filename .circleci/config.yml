@@ -5,7 +5,7 @@ orbs:
 jobs:
   test_package:
     docker:
-      - image: cimg/python:3.8.5
+      - image: cimg/python:3.11
         auth:
           username: $DOCKER_USER
           password: $DOCKER_PAT
@@ -17,9 +17,11 @@ jobs:
           command: |
             python3 -m venv /tmp/buildenv
             source /tmp/buildenv/bin/activate
-            python -m pip install -U "setuptools~=58.0" "setuptools_scm>=6.2" pip wheel twine docutils
-            python setup.py sdist bdist_wheel
-            twine check dist/mriqc_learn*
+            python -m pip install -U build hatch pip twine
+
+            # Build and test package
+            python -m build -s -w
+            python -m twine check dist/mriqc_learn-*
       - store_artifacts:
           path: /tmp/src/mriqc_learn/dist
       - persist_to_workspace:
@@ -30,10 +32,12 @@ jobs:
           command: |
             python3 -m venv /tmp/install_sdist
             source /tmp/install_sdist/bin/activate
-            python -m pip install -U pip "setuptools~=58.0" "setuptools_scm>=6.2"
-            THISVERSION=$( python setup.py --version )
+            python -m pip install -U build hatch pip twine
+
+            THISVERSION=$( python -m hatch version | tail -n1 | xargs )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m pip install dist/mriqc-learn*.tar.gz
+
+            python -m pip install /tmp/src/mriqc_learn/dist/mriqc_learn*.tar.gz
             INSTALLED_VERSION=$(python -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
@@ -43,10 +47,12 @@ jobs:
           command: |
             python3 -m venv /tmp/install_wheel
             source /tmp/install_wheel/bin/activate
-            python -m pip install "setuptools~=58.0" "setuptools_scm>=6.2" wheel "pip>=10.0.1"
-            THISVERSION=$( python setup.py --version )
+            python -m pip install -U build hatch pip twine
+
+            THISVERSION=$( python -m hatch version | tail -n1 | xargs )
             THISVERSION=${CIRCLE_TAG:-$THISVERSION}
-            python -m pip install dist/mriqc_learn*.whl
+
+            python -m pip install /tmp/src/mriqc_learn/dist/mriqc_learn*.whl
             INSTALLED_VERSION=$(python -c 'import mriqc_learn as ml; print(ml.__version__, end="")')
             echo "VERSION: \"${THISVERSION}\""
             echo "INSTALLED: \"${INSTALLED_VERSION}\""
@@ -54,7 +60,7 @@ jobs:
 
   deploy_pypi:
     docker:
-      - image: cimg/python:3.8.5
+      - image: cimg/python:3.11
     working_directory: /tmp/src/mriqc_learn
     steps:
       - attach_workspace:
@@ -75,11 +81,6 @@ workflows:
       - test_package:
           context:
             - nipreps-common
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              only: /.*/
 
       - deploy_pypi:
           context:
