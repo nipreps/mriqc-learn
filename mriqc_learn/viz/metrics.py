@@ -193,10 +193,10 @@ def plot_corrmat(
     ----------
     data
         A 2D numpy array of shape (M, N).
-    row_labels
-        A list or array of length M with the labels for the rows.
     col_labels
         A list or array of length N with the labels for the columns.
+    row_labels
+        A list or array of length M with the labels for the rows.
     ax
         A `matplotlib.axes.Axes` instance to which the heatmap is plotted.  If
         not provided, use current axes or create a new one.  Optional.
@@ -204,6 +204,11 @@ def plot_corrmat(
         A dictionary with arguments to `matplotlib.Figure.colorbar`.  Optional.
     cbarlabel
         The label for the colorbar.  Optional.
+    symmetric
+        Use ``True`` if the matrix is symmetric to plot only the lower
+        triangular part of the matrix.
+    figsize
+        Figure size (width, height) in inches.
     **kwargs
         All other arguments are forwarded to `imshow`.
 
