@@ -21,6 +21,7 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Public API for MRIQC-learn datasets."""
+
 from pathlib import Path
 from pkg_resources import resource_filename as pkgrf
 
@@ -65,8 +66,8 @@ def load_data(
 
     Parameters
     ----------
-    path : :obj:`os.pathlike`
-        Whether to indicate a custom path were data are written in a TSV file.
+    path : :obj:`os.pathlike` or :obj:`pd.DataFrame`
+        Either a custom path where data are written in a TSV file, or a pandas DataFrame containing the data directly.
     split_strategy : ``None`` or :obj:`str`
         How the data must be split into train and test subsets.
         Possible values are: ``"random"`` (default), ``"site"``, or ``None``/``"none"``.
@@ -88,16 +89,20 @@ def load_data(
     if site is not None:
         split_strategy = "site"
 
-    if path is None:
-        path = Path(pkgrf("mriqc_learn.datasets", "abide.tsv"))
+    if isinstance(path, pd.DataFrame):
+        dataframe = path
+    else:
+        if path is None:
+            path = Path(pkgrf("mriqc_learn.datasets", "abide.tsv"))
 
-    dataframe = pd.read_csv(path, index_col=None, delimiter=r"\s+")
+        dataframe = pd.read_csv(path, index_col=None, delimiter=r"\s+")
+
     xy_index = dataframe.columns.tolist().index(first_iqm)
 
     if split_strategy is None or split_strategy.lower() == "none":
         return (
             dataframe[dataframe.columns[xy_index:]],
-            dataframe[dataframe.columns[:xy_index]]
+            dataframe[dataframe.columns[:xy_index]],
         ), (None, None)
 
     n = len(dataframe)
@@ -118,8 +123,5 @@ def load_data(
 
     return (
         train_df[dataframe.columns[xy_index:]],
-        train_df[dataframe.columns[:xy_index]]
-    ), (
-        test_df[dataframe.columns[xy_index:]],
-        test_df[dataframe.columns[:xy_index]]
-    )
+        train_df[dataframe.columns[:xy_index]],
+    ), (test_df[dataframe.columns[xy_index:]], test_df[dataframe.columns[:xy_index]])

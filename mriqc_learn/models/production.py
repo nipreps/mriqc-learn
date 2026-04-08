@@ -21,11 +21,14 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Create a pipeline for nested cross-validation."""
+
 from pkg_resources import resource_filename as pkgrf
 
 from joblib import load
 from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier as RFC
+from sklearn.dummy import DummyRegressor
+from xgboost import XGBRegressor
 from mriqc_learn.models import preprocess as pp
 
 
@@ -34,6 +37,19 @@ def load_model():
 
 
 def init_pipeline():
+    return init_pipeline_rfc()
+
+
+def init_pipeline_rfc():
+    """
+    Initialize a pipeline running a random forest classifier.
+
+    Parameters
+    ----------
+    model_type : str
+        The model to use. Only 'rfc' and 'xgboost' are supported.
+    """
+
     steps = [
         (
             "drop_ft",
@@ -53,7 +69,7 @@ def init_pipeline():
         ("winnow", pp.NoiseWinnowFeatSelect(use_classifier=True)),
         ("drop_site", pp.DropColumns(drop=["site"])),
         (
-            "rfc",
+            "model",
             RFC(
                 bootstrap=True,
                 class_weight=None,
@@ -70,5 +86,53 @@ def init_pipeline():
             ),
         ),
     ]
+    return Pipeline(steps)
 
+
+def init_pipeline_xgboost(
+    n_estimators=50,
+    max_depth=2,
+    eta=0.1,
+    subsample=1.0,
+    learning_rate=0.1,
+    colsample_bytree=1.0,
+):
+    steps = [
+        (
+            "drop_ft",
+            pp.DropColumns(
+                drop=[f"size_{ax}" for ax in "xyz"] + [f"spacing_{ax}" for ax in "xyz"]
+            ),
+        ),
+        ("winnow", pp.NoiseWinnowFeatSelect(use_classifier=True)),
+        (
+            "model",
+            XGBRegressor(
+                n_estimators=n_estimators,
+                max_depth=max_depth,
+                eta=eta,
+                subsample=subsample,
+                learning_rate=learning_rate,
+                colsample_bytree=colsample_bytree,
+                n_jobs=1,
+            ),
+        ),
+    ]
+    return Pipeline(steps)
+
+
+def init_pipeline_naive(strategy="mean"):
+    steps = [
+        (
+            "drop_ft",
+            pp.DropColumns(
+                drop=[f"size_{ax}" for ax in "xyz"] + [f"spacing_{ax}" for ax in "xyz"]
+            ),
+        ),
+        ("winnow", pp.NoiseWinnowFeatSelect(use_classifier=True)),
+        (
+            "model",
+            DummyRegressor(strategy=strategy),
+        ),
+    ]
     return Pipeline(steps)

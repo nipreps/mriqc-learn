@@ -31,7 +31,7 @@ jobs:
       run: |
         python -m venv /tmp/buildenv
         source /tmp/buildenv/bin/activate
-        python -m pip install -U build hatch pip twine
+        python -m pip install -U build hatch pip twine setuptools-scm<9
 
         python -m build -s -w
         python -m twine check dist/mriqc_learn-*
